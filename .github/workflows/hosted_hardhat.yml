@@ -1,0 +1,27 @@
+name: Hosted Hardhat
+
+on: [push]
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Setup tunnel
+        uses: actions/ngrok-tunnel
+        env:
+          NGROK_TOKEN: ${{ secrets.NGROK_TOKEN }}
+
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 17.1.0
+
+      - name: Install deps
+        run: |
+          npm install hardhat -g
+
+      - name: Run hardhat node
+        run: |
+          npx hardhat node --host 0.0.0.0 --port 8545 &
+
+ 
