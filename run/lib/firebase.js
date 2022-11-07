@@ -11,6 +11,40 @@ const TransactionReceipt = models.TransactionReceipt;
 const Explorer = models.Explorer;
 const TokenBalanceChange = models.TokenBalanceChange;
 
+const createExplorer = async (userId, workspaceId, chainId, name, rpcServer, slug, themes, totalSupply, domain, token) => {
+    if (!userId || !workspaceId || !chainId || !name || !rpcServer || !slug) throw '[createExplorer] Missing parameter';
+
+    try {
+        const explorer = await Explorer.safeCreateExplorer({
+            userId: userId,
+            workspaceId: workspaceId,
+            chainId: chainId,
+            name: name,
+            rpcServer: rpcServer,
+            slug: slug,
+            themes: themes,
+            totalSupply: totalSupply,
+            domain: domain,
+            token: token
+        });
+        return explorer ? explorer.toJSON() : null;
+    } catch(error) {
+        writeLog({
+            functionName: 'firebase.createExplorer',
+            error: error,
+            extra: {
+                parsedMessage: error.original && error.original.message,
+                parsedDetail: error.original && error.original.detail,
+                userId: String(userId),
+                workspaceId: String(workspaceId),
+                name: name,
+                rpcServer: rpcServer
+            }
+        });
+        throw error;
+    }
+};
+
 const storeContractDataWithWorkspaceId = async (workspaceId, address, data) => {
     if (!workspaceId || !address || !data) throw '[storeContractDataWithWorkspaceId] Missing parameter';
 
@@ -1645,5 +1679,6 @@ module.exports = {
     updateErc721Token: updateErc721Token,
     getContractByWorkspaceId: getContractByWorkspaceId,
     storeContractDataWithWorkspaceId: storeContractDataWithWorkspaceId,
-    Workspace: Workspace
+    Workspace: Workspace,
+    createExplorer: createExplorer
 };
