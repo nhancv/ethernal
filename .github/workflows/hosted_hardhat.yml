@@ -13,7 +13,7 @@ jobs:
         uses: vmactions/ngrok-tunnel@v0.0.1
         with:
           protocol: tcp
-          port: 22
+          port: 8545
 
       - uses: actions/setup-node@v1
         with:
@@ -21,10 +21,10 @@ jobs:
 
       - name: Install deps
         run: |
-          npm install hardhat -g
+          npm install hardhat
 
       - name: Run hardhat node
         run: |
-          npx hardhat node --host 0.0.0.0 --port 8545 &
+          npx hardhat node --host 0.0.0.0 --port 8545
 
  
