@@ -4,6 +4,84 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+### Unreleased
+- Reduce workers concurrency
+
+## [3.16.1] - 2023-07-05
+### Fixed
+- Token holders & circulating supply calculations
+
+### Changed
+- Reduce workers concurrency for lighter db load
+
+## [3.16.0] - 2023-07-04
+### Changed
+- Updated code runner API to be able to override native transaction fields + added quorum library
+
+### Fixed
+- Bug on the token transfer API
+
+## [3.15.8] - 2023-07-02
+### Fixed
+- Previous release had a test that was not passing
+
+## [3.15.7] - 2023-07-02
+### Added
+- [Public Explorer] Added "fromBlock" parameter to the token transfers API, that only returns transfers made after the specified block number. Thanks @lgalant for the PR
+
+## [3.15.6] - 2023-07-01
+### Added
+- [Public Explorer] Different user facing rpc
+
+## [3.15.5] - 2023-07-01
+### Fixed
+- Bug preventing partial block revertion
+
+## [3.15.4] - 2023-06-29
+### Removed
+- Bun. Makes too many things break (bunner...). Not enough of a priority.
+
+## [3.15.3] - 2023-06-29
+### Fixed
+- Block syncing could fail if the miner field is not an address because ethers.js doesn't handle this case even so this appears to be standard. This can happen for example when using Polygon POA chains.
+
+## [3.15.2] - 2023-06-29
+### Changed
+- [Public Explorer] Optimized processing for erc721 tokens
+
+### Fixed
+- [Public Explorer] Bug preventing token from being processed if the contract wasn't in the db before
+
+## [3.15.1] - 2023-06-29
+### Removed
+- Backend processing for transaction errors on private workspaces
+
+### Fixed
+- Error when trying to process a failed transaction that got removed already
+
+## [3.15.0] - 2023-06-29
+### Changed
+- More efficient contract processing, especially for public explorer instances
+
+## [3.14.5] - 2023-06-28
+### Changed
+- [Public Explorer] Better handling of syncing/expired block in integrity checks
+
+## [3.14.4] - 2023-06-28
+### Added
+- [Public Explorer] Fix reverting pending block when including transaction
+
+## [3.14.3] - 2023-06-28
+### Added
+- [Public Explorer] Integrity check is now handling expired pending blocks
+
+### Changed
+- [Public Explorer] Block sync should revert pending blocks better
+
+## [3.14.2] - 2023-06-27
+### Fixed
+- If code retrieval during tracing fails, the whole tracing fails. Fixes this.
+
 ## [3.14.1] - 2023-06-26
 ### Changed
 - Improve case when balance change request fails

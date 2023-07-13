@@ -9,8 +9,16 @@ const Transaction = models.Transaction;
 const Workspace = models.Workspace;
 const TransactionReceipt = models.TransactionReceipt;
 const Explorer = models.Explorer;
-const StripePlan = models.StripePlan;
-const StripeSubscription = models.StripeSubscription;
+const Contract = models.Contract;
+const Block = models.Block;
+
+const getContractById = async (contractId) => {
+    if (!contractId) throw new Error('Missing parameter');
+
+    const contract = await Contract.findByPk(contractId);
+
+    return contract ? contract.toJSON() : null;
+};
 
 const storeContractVerificationData = async (workspaceId, address, verificationData) => {
     if (!workspaceId || !address || !verificationData) throw new Error('Missing parameter');
@@ -315,7 +323,7 @@ const getTokenStats = async (workspaceId, address) => {
     };
 };
 
-const getTokenTransfers = async (workspaceId, address, page, itemsPerPage, orderBy, order) => {
+const getTokenTransfers = async (workspaceId, address, page, itemsPerPage, orderBy, order, fromBlock) => {
     if (!workspaceId || !address) throw new Error('Missing parameter');
 
     const workspace = await Workspace.findByPk(workspaceId);
@@ -324,12 +332,11 @@ const getTokenTransfers = async (workspaceId, address, page, itemsPerPage, order
     if (!contract)
         throw new Error(`Can't find contract at this address.`);
 
-    const transfers = await contract.getTokenTransfers(page, itemsPerPage, orderBy, order);
-    const transferCount = await contract.countTokenTransfers();
+    const { count, rows } = await contract.getTokenTransfers(page, itemsPerPage, orderBy, order, fromBlock);
 
     return {
-        items: transfers.map(t => t.toJSON()),
-        total: transferCount,
+        items: rows.map(t => t.toJSON()),
+        total: count,
     };
 };
 
@@ -378,14 +385,20 @@ const getContractLogs = async (workspaceId, address, signature, page, itemsPerPa
     };
 };
 
-const storeContractDataWithWorkspaceId = async (workspaceId, address, data) => {
-    if (!workspaceId || !address || !data) throw new Error('Missing parameter.');
+const storeContractDataWithWorkspaceId = async (workspaceId, address, data = {}) => {
+    if (!workspaceId || !address) throw new Error('Missing parameter.');
 
     const workspace = await Workspace.findByPk(workspaceId);
-    return workspace.safeCreateOrUpdateContract({
+
+    if (!workspace)
+        throw new Error('Cannot find workspace');
+
+    const contract = await workspace.safeCreateOrUpdateContract({
         address: address,
         ...data
     });
+
+    return contract ? contract.toJSON() : null;
 };
 
 const getContractByWorkspaceId = async (workspaceId, address) => {
@@ -927,6 +940,10 @@ const canUserSyncContract = async (userId, workspaceName, address) => {
     if (!userId) throw new Error('Missing parameter.');
 
     const user = await User.findByAuthIdWithWorkspace(userId, workspaceName);
+
+    if (!user)
+        throw new Error(`Couldn't find workspace "${workspaceName}".`);
+
     if (user.isPremium)
         return true;
 
@@ -1123,5 +1140,6 @@ module.exports = {
     updateWorkspaceRpcHealthCheck: updateWorkspaceRpcHealthCheck,
     revertPartialBlock: revertPartialBlock,
     storeContractVerificationData: storeContractVerificationData,
+    getContractById: getContractById,
     Workspace: Workspace
 };

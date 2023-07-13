@@ -239,20 +239,17 @@ module.exports = (sequelize, DataTypes) => {
 
         return sequelize.query(`
             WITH balances AS (
-                SELECT address, SUM(diff::numeric) AS amount
+                SELECT DISTINCT ON (address) address, "blockNumber", "currentBalance"::numeric cb
                 FROM token_balance_changes
-                WHERE token_balance_changes."workspaceId" = :workspaceId AND token_balance_changes.token = :token
-                GROUP BY address
+                LEFT JOIN transactions t ON t.id = token_balance_changes."transactionId"
+                WHERE token_balance_changes."workspaceId" = :workspaceId AND token = :token
+                ORDER BY "address", "blockNumber" DESC
             ),
             supply AS (
-                SELECT SUM(diff::numeric) AS value
-                FROM token_balance_changes
-                WHERE token_balance_changes."workspaceId" = :workspaceId AND token_balance_changes.token = :token
+                SELECT sum("cb"::numeric) AS value FROM balances
             )
-            SELECT balances.address, balances.amount::numeric AS amount, balances.amount::float / supply.value::float AS share
-            FROM token_balance_changes, balances, supply
-            WHERE token_balance_changes."workspaceId" = :workspaceId AND token_balance_changes.token = :token
-            GROUP BY balances.address, balances.amount, supply.value
+            SELECT balances.address, balances.cb AS amount, balances.cb::float / supply.value::float AS share
+            FROM balances, supply
             ORDER BY ${sanitizedOrderBy} ${sanitizedOrder} LIMIT :itemsPerPage OFFSET :offset;
         `, {
             replacements: {
@@ -289,20 +286,27 @@ module.exports = (sequelize, DataTypes) => {
     }
 
     async getTokenCirculatingSupply() {
-        const result = await sequelize.models.TokenBalanceChange.findAll({
-            where: {
+        const res = await sequelize.query(`
+            WITH balances AS (
+                SELECT DISTINCT ON (address) address, "blockNumber", "currentBalance"::numeric cb
+                FROM token_balance_changes
+                LEFT JOIN transactions t ON t.id = token_balance_changes."transactionId"
+                WHERE token_balance_changes."workspaceId" = :workspaceId AND token = :token
+                ORDER BY "address", "blockNumber" DESC
+            )
+            SELECT sum("cb"::numeric) AS value FROM balances
+        `, {
+            replacements: {
                 workspaceId: this.workspaceId,
-                token: this.address
+                token: this.address,
             },
-            attributes: [
-                sequelize.literal('SUM(diff::numeric)'),
-            ],
-            raw: true,
+            type: QueryTypes.SELECT
         });
-        return result[0].sum || 0;
+
+        return res[0] && res[0].value;
     }
 
-    getTokenTransfers(page = 1, itemsPerPage = 10, orderBy = 'id', order = 'DESC') {
+    getTokenTransfers(page = 1, itemsPerPage = 10, orderBy = 'id', order = 'DESC', fromBlock = 0) {
         let sanitizedOrderBy;
         switch(orderBy) {
             case 'timestamp':
@@ -318,17 +322,18 @@ module.exports = (sequelize, DataTypes) => {
                 break;
         }
 
-        return sequelize.models.TokenTransfer.findAll({
+        return sequelize.models.TokenTransfer.findAndCountAll({
             where: {
                 workspaceId: this.workspaceId,
-                token: this.address
+                token: this.address,
+                '$transaction.blockNumber$': { [Op.gte]: fromBlock }
             },
             attributes: ['id', 'src', 'dst', 'token', [sequelize.cast(sequelize.col('"TokenTransfer".amount'), 'numeric'), 'amount'], 'tokenId'],
             include: [
                 {
                     model: sequelize.models.Transaction,
                     as: 'transaction',
-                    attributes: ['hash', 'blockNumber', 'timestamp']
+                    attributes: ['hash', 'blockNumber', 'timestamp'],
                 },
                 {
                     model: sequelize.models.Contract,
@@ -544,23 +549,20 @@ module.exports = (sequelize, DataTypes) => {
     asm: DataTypes.TEXT
   }, {
     hooks: {
-        afterDestroy(contract, options) {
+        afterDestroy(contract) {
             trigger(`private-contracts;workspace=${contract.workspaceId}`, 'destroyed', null);
         },
-        beforeUpdate(contract, options) {
-            if (contract._changed.size > 0 && !contract._changed.has('processed') && !contract._changed.has('totalSupply'))
-                contract.processed = false;
-        },
-        afterUpdate(contract, options) {
-            trigger(`private-transactions;workspace=${contract.workspaceId};address=${contract.address}`, 'new', null);
-            if (contract.patterns.indexOf('erc20') > -1)
-                trigger(`private-tokens;workspace=${contract.workspaceId}`, 'new', null);
-            else if (contract.patterns.indexOf('erc721') > -1)
-                trigger(`private-nft;workspace=${contract.workspaceId}`, 'new', null);
+        async afterCreate(contract, options) {
+            const afterCreateFn = () => {
+                return enqueue(`processContract`, `processContract-${contract.id}`, { contractId: contract.id });
+            };
 
-            return enqueue(`contractProcessing`, `contractProcessing-${contract.id}`, { contractId: contract.id, workspaceId: contract.workspaceId });
+            if (options.transaction)
+                options.transaction.afterCommit(afterCreateFn);
+            else
+                afterCreateFn();
         },
-        afterSave(contract, options) {
+        async afterSave(contract) {
             trigger(`private-contracts;workspace=${contract.workspaceId}`, 'new', null);
             trigger(`private-transactions;workspace=${contract.workspaceId};address=${contract.address}`, 'new', null);
 
@@ -568,8 +570,6 @@ module.exports = (sequelize, DataTypes) => {
                 trigger(`private-tokens;workspace=${contract.workspaceId}`, 'new', null);
             else if (contract.patterns.indexOf('erc721') > -1)
                 trigger(`private-nft;workspace=${contract.workspaceId}`, 'new', null);
-
-            return enqueue(`contractProcessing`, `contractProcessing-${contract.id}`, { contractId: contract.id, workspaceId: contract.workspaceId });
         }
     },
     sequelize,

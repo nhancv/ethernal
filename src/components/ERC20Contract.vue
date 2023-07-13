@@ -59,7 +59,7 @@
                     </v-col>
 
                     <v-col cols="12" sm="6" lg="6">
-                        <Stat-Number :loading="loadingStats" :title="'Circulating Supply'" :value="contractStats.tokenCirculatingSupply" :decimals="contract.tokenDecimals" :infoTooltip="'Number of minted tokens'" />
+                        <Stat-Number :loading="loadingStats" :title="'Circulating Supply'" :value="contractStats.tokenCirculatingSupply" :decimals="contract.tokenDecimals" :infoTooltip="'Number of tokens currently in circulation'" />
                     </v-col>
 
                     <v-col cols="12" sm="6" lg="6">
@@ -170,7 +170,7 @@ export default {
                     'balanceOf(address)',
                     { from: null },
                     { 0: data.account },
-                    this.currentWorkspace.rpcServer,
+                    this.rpcServer,
                     window.ethereum
                 )
                 .then(([balance]) => this.connectedAccountBalance = balance)
@@ -196,7 +196,7 @@ export default {
     },
     computed: {
         ...mapGetters([
-            'currentWorkspace'
+            'rpcServer'
         ]),
         tab: {
             set(tab) {

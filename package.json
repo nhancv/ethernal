@@ -1,6 +1,6 @@
 {
   "name": "ethernal",
-  "version": "3.14.1",
+  "version": "3.16.1",
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve",
@@ -10,7 +10,6 @@
     "lint": "vue-cli-service lint",
     "dev": "firebase emulators:start --import=./firebase-emulator --export-on-exit & vue-cli-service serve"
   },
-  "main": "background.js",
   "dependencies": {
     "@datadog/browser-rum": "^4.26.0",
     "@iconify/vue2": "^2.0.0",

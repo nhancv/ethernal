@@ -8,7 +8,6 @@ const { sanitize } = require('../lib/utils');
 const { enqueue } = require('../lib/queue');
 const { ProviderConnector } = require('../lib/rpc');
 const logger = require('../lib/logger');
-const moment = require('moment');
 
 const Op = Sequelize.Op;
 const INTEGRATION_FIELD_MAPPING = {
@@ -446,13 +445,13 @@ module.exports = (sequelize, DataTypes) => {
                     blockNumber: transaction.blockNumber,
                     blockId: storedBlock.id,
                     chainId: transaction.chainId,
-                    confirmations: transaction.confirmations,
+                    confirmations: transaction.confirmations || 0,
                     creates: transaction.creates,
-                    data: transaction.data,
+                    data: transaction.data || transaction.input,
                     parsedError: transaction.parsedError,
                     rawError: transaction.rawError,
                     from: transaction.from,
-                    gasLimit: transaction.gasLimit,
+                    gasLimit: transaction.gasLimit || block.gasLimit,
                     gasPrice: transaction.gasPrice,
                     hash: transaction.hash,
                     methodLabel: transaction.methodLabel,
@@ -702,7 +701,7 @@ module.exports = (sequelize, DataTypes) => {
             tokenDecimals: contract.tokenDecimals,
             tokenName: contract.tokenName,
             tokenSymbol: contract.tokenSymbol,
-            tokenTotalSupply: contract.totalSupply,
+            tokenTotalSupply: contract.tokenTotalSupply,
             watchedPaths: contract.watchedPaths,
             has721Metadata: contract.has721Metadata,
             has721Enumerable: contract.has721Enumerable,
@@ -939,7 +938,7 @@ module.exports = (sequelize, DataTypes) => {
             filter['where']['createdAt'] = { [Op.lt]: sequelize.literal(`NOW() - interval '${dayInterval} day'`)};
 
         return sequelize.transaction(
-            {  deferrable: Sequelize.Deferrable.SET_DEFERRED },
+            { deferrable: Sequelize.Deferrable.SET_DEFERRED },
             async (transaction) => {
                 await sequelize.models.IntegrityCheck.destroy(filter, { transaction });
                 await sequelize.models.TokenBalanceChange.destroy(filter, { transaction });
