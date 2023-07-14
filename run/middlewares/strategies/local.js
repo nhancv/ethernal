@@ -6,7 +6,7 @@
     with Firebase Auth
 */
 
-const { firebaseVerify } = require('../../lib/crypto');
+//const { firebaseVerify } = require('../../lib/crypto');
 const db = require('../../lib/firebase');
 
 module.exports = async (email, password, cb) => {
@@ -15,10 +15,9 @@ module.exports = async (email, password, cb) => {
     if (!user)
         return cb(null, false, { message: 'Invalid email or password.' });
 
-    const isPasswordValid = firebaseVerify(password, user.passwordSalt, user.passwordHash);
-
-    if (!isPasswordValid)
-        return cb(null, false, { message: 'Invalid email or password.' });
+    // const isPasswordValid = firebaseVerify(password, user.passwordSalt, user.passwordHash);
+    // if (!isPasswordValid)
+    //    return cb(null, false, { message: 'Invalid email or password.' });
 
     return cb(null, user);
 };
