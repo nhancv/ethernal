@@ -667,8 +667,13 @@ const getUser = async (id, extraFields = []) => {
 const createUser = async (uid, data) => {
     if (!uid || !data) throw new Error('Missing parameter.');
 
-    const user = await User.safeCreate(uid, data.email, data.apiKey, data.stripeCustomerId, data.plan, data.explorerSubscriptionId, data.passwordHash, data.passwordSalt);
-    return user ? user.toJSON() : null;
+    // With this nhancv's version -> Allow only one account created during setup. Because we just want to setup for a custom chain
+    const count = await User.count();
+    if(count < 1) {
+        const user = await User.safeCreate(uid, data.email, data.apiKey, data.stripeCustomerId, data.plan, data.explorerSubscriptionId, data.passwordHash, data.passwordSalt);
+        return user ? user.toJSON() : null;
+    }
+    return null;
 };
 
 const getUserWorkspaces = async (userId) => {
