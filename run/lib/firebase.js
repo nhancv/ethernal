@@ -672,8 +672,9 @@ const createUser = async (uid, data) => {
     if(count < 1) {
         const user = await User.safeCreate(uid, data.email, data.apiKey, data.stripeCustomerId, data.plan, data.explorerSubscriptionId, data.passwordHash, data.passwordSalt);
         return user ? user.toJSON() : null;
+    } else {
+        throw new Error('Limit account created');
     }
-    return null;
 };
 
 const getUserWorkspaces = async (userId) => {
